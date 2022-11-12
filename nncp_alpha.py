@@ -183,7 +183,7 @@ class GetAssignments(ast.NodeVisitor):
         elif isinstance(node.value, ast.List):
             tmpstr='['
             for elem in node.value.elts:
-                tmpstr+=handleConstName(elem.id, treedic)
+                tmpstr+=handleConstName(elem, treedic)
                 if not elem == node.value.elts[-1]:
                     tmpstr+=','
             tmpstr+=']'
