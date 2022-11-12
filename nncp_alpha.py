@@ -34,6 +34,7 @@ class Node:
 root=Node('null',[])
 flag='spec'     # spec for running the getAssignment for specification 
                 # src for source file 
+funcName = ""   # 
 
 # Variables to check
 spec_vars_list=[]
@@ -53,27 +54,121 @@ with tokenize.open(str(sys.argv[1])) as f:
             spec_vars_list.extend(tmpvars)
             del spec_vars_list[0]
 
+# get function name
+def packFunc(node):
+    global funcName
+    if isinstance(node, ast.Name):
+        if funcName == "":
+            funcName = node.id
+        else:
+            funcName = node.id+"."+funcName
+        return node.id
+    else: # is an ast.Attribute
+        if hasattr(node, 'attr'):
+            if funcName == "":
+                funcName = node.attr
+            else: 
+                funcName = node.attr+"."+funcName
+        return packFunc(node.value)
+
+def handleConstName(elem, treedic):
+    #print(ast.dump(elem))
+    if isinstance(elem, ast.Constant):
+        return str(elem.value)
+    elif isinstance(elem, ast.Name):
+        if elem.id in treedic:
+            return treedic[elem.id]
+        else:
+            return elem.id
+    else:
+        #print("Unrecognized object: ", elem)
+        return False
+
+def SliceStr(slice, treedic):
+    tmpstr='['
+
+    if isinstance(slice, ast.Index):
+        dims=slice.value.elts
+    elif isinstance(slice, ast.ExtSlice):
+        dims=slice.dims
+    else:
+        print("Slice is an unrecognized object: ", slice)
+    
+    #print(dims)
+
+    for i in dims:
+        if isinstance(i, ast.Slice):
+            tmpval=handleConstName(i.lower, treedic)
+            if not tmpval==False:
+                tmpstr+=tmpval
+            tmpstr+=':'
+            tmpval=handleConstName(i.upper, treedic)
+            if not tmpval==False:
+                tmpstr+=tmpval
+            tmpval=handleConstName(i.step, treedic)
+            if not tmpval==False:
+                tmpstr+=':'+tmpval
+        elif isinstance(slice, ast.Index):
+            #print(ast.dump(i))
+            tmpstr+=handleConstName(i, treedic)
+        else:
+            print("Element of slice is an unrecognized object: ", i)
+        
+        if not i == dims[-1]:
+            tmpstr+=','
+
+    tmpstr+=']'
+    return tmpstr
+
 # populate args
 def addArgs(somenode, sometreedic, args):
+    global funcName
     for i in args:
-        if isinstance(i, ast.Constant):
-            somenode.args.append(i.value)
-            continue
-        elif isinstance(i, ast.Name):
-            if i.id in sometreedic:
-                somenode.args.append(sometreedic[i.id])
-            else:
-                somenode.args.append(i.id)
-            continue
         #print(ast.dump(i))
-        nodeobj=Node(i.func.value.id+'.'+i.func.attr, [])
-        addArgs(nodeobj, sometreedic, i.args)
-        somenode.args.append(nodeobj)
+        tmpval = handleConstName(i, sometreedic)
+        if not tmpval==False:
+            somenode.args.append(tmpval)
+        elif isinstance(i, ast.List):
+            tmpstr='['
+            for elem in i.elts:
+                tmpstr+=handleConstName(elem, sometreedic)
+                if not elem == i.elts[-1]:
+                    tmpstr+=','
+            tmpstr+=']'
+            somenode.args.append(tmpstr)
+        elif isinstance(i, ast.Call):
+            funcName=""
+            packFunc(i.func)
+            nodeobj=Node(funcName, [])
+            addArgs(nodeobj, sometreedic, i.args)
+            somenode.args.append(nodeobj)
+        elif isinstance(i, ast.Subscript):
+            nodeobj=Node('Project', [])
+            nodeobj.args.append(i.value.id)
+            nodeobj.args.append(SliceStr(i.slice, sometreedic))
+            somenode.args.append(nodeobj)
+        elif isinstance(i, ast.BinOp):
+            if isinstance(i.op, ast.Add):
+                funcName='Add'
+            elif isinstance(i.op, ast.Sub):
+                funcName='Sub'
+            elif isinstance(i.op, ast.Mult):
+                funcName='Mult'
+            elif isinstance(i.op, ast.MatMult):
+                funcName='MatMult'
+            else:
+                print("Unsupported operation: ", i.op)
+            nodeobj=Node(funcName, [])
+            args=[i.left.id, i.right.id]
+            addArgs(nodeobj, sometreedic, args)
+            somenode.args.append(nodeobj)
+        else:
+            print("Unrecognized node: ", i)
 
 # visit assignments
 class GetAssignments(ast.NodeVisitor):
     def visit_Assign(self, node):
-        global flag, root, spec_treedic, src_treedic
+        global flag, root, spec_treedic, src_treedic, funcName
         if flag=="src":
             if node.targets[0].id not in spec_treedic:
                 return
@@ -82,18 +177,42 @@ class GetAssignments(ast.NodeVisitor):
             treedic=spec_treedic
         #print(ast.dump(node.value))
         root=Node('null',[])
-        if isinstance(node.value, ast.Constant):
-            root.func=node.value.value
-            return
-        elif isinstance(node.value, ast.Name):
-            if node.value.id in treedic:
-                root.args.append(treedic[node.value.id])
+        tmpval=handleConstName(node.value, treedic)
+        if not tmpval==False:
+            root.func=tmpval
+        elif isinstance(node.value, ast.List):
+            tmpstr='['
+            for elem in node.value.elts:
+                tmpstr+=handleConstName(elem.id, treedic)
+                if not elem == node.value.elts[-1]:
+                    tmpstr+=','
+            tmpstr+=']'
+            root.func=tmpstr
+        elif isinstance(node.value, ast.Call):
+            funcName=""
+            packFunc(node.value.func)
+            root.func=funcName
+            addArgs(root, treedic, node.value.args)
+        elif isinstance(node.value, ast.Subscript):
+            root.func='Project'
+            root.args.append(node.value.value.id)
+            root.args.append(SliceStr(node.value.slice, treedic))
+        elif isinstance(node.value, ast.BinOp):
+            if isinstance(node.value.op, ast.Add):
+                root.func='Add'
+            elif isinstance(node.value.op, ast.Sub):
+                root.func='Sub'
+            elif isinstance(node.value.op, ast.Mult):
+                root.func='Mult'
+            elif isinstance(node.value.op, ast.MatMult):
+                root.func='MatMult'
             else:
-                root.args.append(node.value.id)
-            return
-        root.func=node.value.func.value.id+'.'+node.value.func.attr
-        addArgs(root, treedic, node.value.args)
-
+                print("Unsupported operation: ", node.value.op)
+            args=[node.value.left.id, node.value.right.id]
+            addArgs(root, treedic, args)
+        else:
+            print("Unrecognized node: ", node.value)
+    
         treedic[node.targets[0].id]=root
 
 #execute
