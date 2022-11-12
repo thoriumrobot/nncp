@@ -73,7 +73,9 @@ def packFunc(node):
 
 def handleConstName(elem, treedic):
     #print(ast.dump(elem))
-    if isinstance(elem, ast.Constant):
+    if not hasattr(elem, '__dict__'):
+        return elem
+    elif isinstance(elem, ast.Constant):
         return str(elem.value)
     elif isinstance(elem, ast.Name):
         if elem.id in treedic:
@@ -124,7 +126,8 @@ def SliceStr(slice, treedic):
 def addArgs(somenode, treedic, args):
     global funcName
     for i in args:
-        #print(ast.dump(i))
+        #if not isinstance(i, str):
+        #    print(ast.dump(i))
         tmpval = handleConstName(i, treedic)
         if not tmpval==False:
             pass
@@ -200,7 +203,7 @@ class GetAssignments(ast.NodeVisitor):
             args=[node.value.left.id, node.value.right.id]
             addArgs(root, treedic, args)
         else:
-            print("Unrecognized node: ", node.value)
+            print("Unrecognized root node: ", node.value)
     
         treedic[node.targets[0].id]=root
 
