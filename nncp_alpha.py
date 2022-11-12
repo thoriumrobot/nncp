@@ -81,7 +81,7 @@ def handleConstName(elem, treedic):
         else:
             return elem.id
     else:
-        #print("Unrecognized object: ", elem)
+        #print("Cannot handle object: ", elem)
         return False
 
 def SliceStr(slice, treedic):
@@ -121,32 +121,25 @@ def SliceStr(slice, treedic):
     return tmpstr
 
 # populate args
-def addArgs(somenode, sometreedic, args):
+def addArgs(somenode, treedic, args):
     global funcName
     for i in args:
         #print(ast.dump(i))
-        tmpval = handleConstName(i, sometreedic)
+        tmpval = handleConstName(i, treedic)
         if not tmpval==False:
-            somenode.args.append(tmpval)
+            pass
         elif isinstance(i, ast.List):
-            tmpstr='['
-            for elem in i.elts:
-                tmpstr+=handleConstName(elem, sometreedic)
-                if not elem == i.elts[-1]:
-                    tmpstr+=','
-            tmpstr+=']'
-            somenode.args.append(tmpstr)
+            tmpval=Node('List', [])
+            addArgs(tmpval, treedic, i.elts)
         elif isinstance(i, ast.Call):
             funcName=""
             packFunc(i.func)
-            nodeobj=Node(funcName, [])
-            addArgs(nodeobj, sometreedic, i.args)
-            somenode.args.append(nodeobj)
+            tmpval=Node(funcName, [])
+            addArgs(tmpval, treedic, i.args)
         elif isinstance(i, ast.Subscript):
-            nodeobj=Node('Project', [])
-            nodeobj.args.append(i.value.id)
-            nodeobj.args.append(SliceStr(i.slice, sometreedic))
-            somenode.args.append(nodeobj)
+            tmpval=Node('Project', [])
+            tmpval.args.append(i.value.id)
+            tmpval.args.append(SliceStr(i.slice, treedic))
         elif isinstance(i, ast.BinOp):
             if isinstance(i.op, ast.Add):
                 funcName='Add'
@@ -158,12 +151,13 @@ def addArgs(somenode, sometreedic, args):
                 funcName='MatMult'
             else:
                 print("Unsupported operation: ", i.op)
-            nodeobj=Node(funcName, [])
+            tmpval=Node(funcName, [])
             args=[i.left.id, i.right.id]
-            addArgs(nodeobj, sometreedic, args)
-            somenode.args.append(nodeobj)
+            addArgs(tmpval, treedic, args)
         else:
             print("Unrecognized node: ", i)
+        
+        somenode.args.append(tmpval)
 
 # visit assignments
 class GetAssignments(ast.NodeVisitor):
@@ -181,13 +175,8 @@ class GetAssignments(ast.NodeVisitor):
         if not tmpval==False:
             root.func=tmpval
         elif isinstance(node.value, ast.List):
-            tmpstr='['
-            for elem in node.value.elts:
-                tmpstr+=handleConstName(elem, treedic)
-                if not elem == node.value.elts[-1]:
-                    tmpstr+=','
-            tmpstr+=']'
-            root.func=tmpstr
+            root.func='List'
+            addArgs(root, treedic, node.value.elts)
         elif isinstance(node.value, ast.Call):
             funcName=""
             packFunc(node.value.func)
