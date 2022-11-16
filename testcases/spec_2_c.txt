@@ -1,0 +1,2 @@
+#check c
+c= b + a

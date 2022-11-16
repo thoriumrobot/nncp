@@ -18,6 +18,74 @@ class Node:
         if not isinstance(self.func, str):
             s=str(self.func)
             return s
+        elif self.func=='List':
+            s='['
+            for i in self.args:
+                if isinstance(i, Node):
+                    s+=i.ExpString()
+                else:
+                    s+=str(i)
+                if not i is self.args[-1]:
+                    s+=','
+            s+=']'
+            return s
+        elif self.func=='Tuple':
+            s='('
+            for i in self.args:
+                if isinstance(i, Node):
+                    s+=i.ExpString()
+                else:
+                    s+=str(i)
+                if not i is self.args[-1]:
+                    s+=','
+            s+=')'
+            return s
+        elif self.func=='Set':
+            s='{'
+            for i in self.args:
+                if isinstance(i, Node):
+                    s+=i.ExpString()
+                else:
+                    s+=str(i)
+                if not i is self.args[-1]:
+                    s+=','
+            s+='}'
+            return s
+        elif self.func=='Dict':
+            s='{'
+            for i in self.args:
+                s+=i.func+':'
+                if isinstance(i.args[0], Node):
+                    s+=i.args[0].ExpString()
+                else:
+                    s+=str(i.args[0])
+                if not i is self.args[-1]:
+                    s+=','
+            s+='}'
+            return s
+        elif self.func=='Project':
+            op=''
+        elif self.func=='Add':
+            op='+'
+        elif self.func=='Sub':
+            op='-'
+        elif self.func=='Mult':
+            op='*'
+        elif self.func=='MatMult':
+            op=' MatMult '
+        
+        if self.func=='Project' or self.func=='Add' or self.func=='Sub' or self.func=='Mult' or self.func=='MatMult':
+            if isinstance(self.args[0], Node):
+                s=self.args[0].ExpString()
+            else:
+                s=str(self.args[0])
+            s+=op
+            if isinstance(self.args[1], Node):
+                s+=self.args[1].ExpString()
+            else:
+                s+=str(self.args[1])
+            return s
+
         s=self.func+'('
         for i in self.args:
             if isinstance(i, Node):
@@ -73,24 +141,28 @@ def packFunc(node):
 
 def handleConstName(elem, treedic):
     #print(ast.dump(elem))
-    if not hasattr(elem, '__dict__'):
-        return elem
-    elif isinstance(elem, ast.Constant):
-        return str(elem.value)
+    if isinstance(elem, ast.Constant):
+        return elem.value
     elif isinstance(elem, ast.Name):
         if elem.id in treedic:
             return treedic[elem.id]
         else:
             return elem.id
+    elif not hasattr(elem, '__dict__'):
+        return elem
     else:
         #print("Cannot handle object: ", elem)
         return False
 
 def SliceStr(slice, treedic):
+    #print(ast.dump(slice))
+
     tmpstr='['
 
     if isinstance(slice, ast.Index):
         dims=slice.value.elts
+    elif isinstance(slice, ast.Tuple):
+        dims=slice.elts
     elif isinstance(slice, ast.ExtSlice):
         dims=slice.dims
     else:
@@ -100,6 +172,12 @@ def SliceStr(slice, treedic):
 
     for i in dims:
         if isinstance(i, ast.Slice):
+            if i.lower is None:
+                tmpstr+=':'
+                if not i == dims[-1]:
+                    tmpstr+=','
+                continue
+            
             tmpval=handleConstName(i.lower, treedic)
             if not tmpval==False:
                 tmpstr+=tmpval
@@ -113,6 +191,12 @@ def SliceStr(slice, treedic):
         elif isinstance(slice, ast.Index):
             #print(ast.dump(i))
             tmpstr+=handleConstName(i, treedic)
+        elif isinstance(i, ast.Name):
+            tmpval=handleConstName(i, treedic)
+            if isinstance(tmpval, Node):
+                tmpstr+=tmpval.ExpString()
+            else:
+                tmpstr+=tmpval
         else:
             print("Element of slice is an unrecognized object: ", i)
         
@@ -134,6 +218,20 @@ def addArgs(somenode, treedic, args):
         elif isinstance(i, ast.List):
             tmpval=Node('List', [])
             addArgs(tmpval, treedic, i.elts)
+        elif isinstance(i, ast.Tuple):
+            tmpval=Node('Tuple', [])
+            addArgs(tmpval, treedic, i.elts)
+        elif isinstance(i, ast.Set):
+            tmpval=Node('Set', [])
+            addArgs(tmpval, treedic, i.elts)
+        elif isinstance(i, ast.Dict):
+            tmpval=Node('Dict', [])
+            #print(i.keys)
+            for idx, key in enumerate(i.keys):
+                tmpval1=Node(key.value, [])
+                tmparg=[i.values[idx]]
+                addArgs(tmpval1, treedic, tmparg)
+                tmpval.args.append(tmpval1)
         elif isinstance(i, ast.Call):
             funcName=""
             packFunc(i.func)
@@ -155,7 +253,7 @@ def addArgs(somenode, treedic, args):
             else:
                 print("Unsupported operation: ", i.op)
             tmpval=Node(funcName, [])
-            args=[i.left.id, i.right.id]
+            args=[i.left, i.right]
             addArgs(tmpval, treedic, args)
         else:
             print("Unrecognized node: ", i)
@@ -167,7 +265,7 @@ class GetAssignments(ast.NodeVisitor):
     def visit_Assign(self, node):
         global flag, root, spec_treedic, src_treedic, funcName
         if flag=="src":
-            if node.targets[0].id not in spec_treedic:
+            if node.targets[0].id not in spec_treedic: #one way nesting
                 return
             treedic=src_treedic
         else:
@@ -180,6 +278,21 @@ class GetAssignments(ast.NodeVisitor):
         elif isinstance(node.value, ast.List):
             root.func='List'
             addArgs(root, treedic, node.value.elts)
+        elif isinstance(node.value, ast.Tuple):
+            root.func='Tuple'
+            addArgs(root, treedic, node.value.elts)
+        elif isinstance(node.value, ast.Set):
+            root.func='Set'
+            addArgs(root, treedic, node.value.elts)
+        elif isinstance(node.value, ast.Dict):
+            root.func='Dict'
+            #print(ast.dump(node.value))
+            #print(ast.dump(node.value.keys[0]))
+            for idx, key in enumerate(node.value.keys):
+                tmpval=Node(key.value, [])
+                tmparg=[node.value.values[idx]]
+                addArgs(tmpval, treedic, tmparg)
+                root.args.append(tmpval)
         elif isinstance(node.value, ast.Call):
             funcName=""
             packFunc(node.value.func)
@@ -200,7 +313,8 @@ class GetAssignments(ast.NodeVisitor):
                 root.func='MatMult'
             else:
                 print("Unsupported operation: ", node.value.op)
-            args=[node.value.left.id, node.value.right.id]
+            #print(args)
+            args=[node.value.left, node.value.right]
             addArgs(root, treedic, args)
         else:
             print("Unrecognized root node: ", node.value)
@@ -222,6 +336,11 @@ for i in spec_vars_list:
 src_tree=ast.parse(src,mode='exec')
 flag='src'
 GetAssignments().visit(src_tree)
+
+#print(src_treedic)
+#print(src_treedic['c'].ExpString())
+#print(src_treedic['c'].args[0].func)
+#print(spec_vars_list)
 
 #check for incompatibilities
 for key in spec_vars_list:
