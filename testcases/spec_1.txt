@@ -1,2 +1,4 @@
 #check c
-c=h(f(),g())
+a=f()
+b=g()
+c=h(a,b)
