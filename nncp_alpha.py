@@ -1,57 +1,44 @@
 import ast, tokenize, csv, sys
 
 # read specifiction 
-with open(str(sys.argv[1]), 'r') as f: 
+with open(str(sys.argv[1]), 'r', encoding='utf8') as f: 
     spec = f.read()
 
 # read code from file 
 with open(str(sys.argv[2]), 'r', encoding='utf8') as f: 
     src = f.read()
 
+def CSList(args):
+    s=''
+    for i in args:
+        if isinstance(i, Node):
+            s+=i.ExpString()
+        else:
+            s+=str(i)
+        if not i is args[-1]:
+            s+=','
+    return s
+
 # Node structure: used for the function representation.  
 class Node:
     def __init__(self, func, args):
         self.func=func
         self.args=args
-
+    
     def ExpString(self):
         if not isinstance(self.func, str):
             s=str(self.func)
             return s
-        elif self.func=='List':
-            s='['
-            for i in self.args:
-                if isinstance(i, Node):
-                    s+=i.ExpString()
-                else:
-                    s+=str(i)
-                if not i is self.args[-1]:
-                    s+=','
-            s+=']'
+        elif self.func=='List(':
+            s='['+CSList(self.args)+']'
             return s
-        elif self.func=='Tuple':
-            s='('
-            for i in self.args:
-                if isinstance(i, Node):
-                    s+=i.ExpString()
-                else:
-                    s+=str(i)
-                if not i is self.args[-1]:
-                    s+=','
-            s+=')'
+        elif self.func=='Tuple(':
+            s='('+CSList(self.args)+')'
             return s
-        elif self.func=='Set':
-            s='{'
-            for i in self.args:
-                if isinstance(i, Node):
-                    s+=i.ExpString()
-                else:
-                    s+=str(i)
-                if not i is self.args[-1]:
-                    s+=','
-            s+='}'
+        elif self.func=='Set(':
+            s='{'+CSList(self.args)+'}'
             return s
-        elif self.func=='Dict':
+        elif self.func=='Dict(':
             s='{'
             for i in self.args:
                 s+=i.func+':'
@@ -63,18 +50,18 @@ class Node:
                     s+=','
             s+='}'
             return s
-        elif self.func=='Project':
+        elif self.func=='Project(':
             op=''
-        elif self.func=='Add':
+        elif self.func=='Add(':
             op='+'
-        elif self.func=='Sub':
+        elif self.func=='Sub(':
             op='-'
-        elif self.func=='Mult':
+        elif self.func=='Mult(':
             op='*'
-        elif self.func=='MatMult':
+        elif self.func=='MatMult(':
             op=' MatMult '
         
-        if self.func=='Project' or self.func=='Add' or self.func=='Sub' or self.func=='Mult' or self.func=='MatMult':
+        if self.func=='Project(' or self.func=='Add(' or self.func=='Sub(' or self.func=='Mult(' or self.func=='MatMult(':
             if isinstance(self.args[0], Node):
                 s=self.args[0].ExpString()
             else:
@@ -86,15 +73,7 @@ class Node:
                 s+=str(self.args[1])
             return s
 
-        s=self.func+'('
-        for i in self.args:
-            if isinstance(i, Node):
-                s+=i.ExpString()
-            else:
-                s+=str(i)
-            if not i is self.args[-1]:
-                s+=','
-        s+=')'
+        s=self.func+'('+CSList(self.args)+')'
         return s
 
 # Global 
@@ -105,11 +84,13 @@ flag='spec'     # spec for running the getAssignment for specification
 funcName = ""   # 
 
 # Variables to check
-spec_vars_list=[]
+spec_vars_list=set()
 
 #create dictionary
 spec_treedic={}
 src_treedic={}
+
+check_flag=False
 
 # use the tokenize to annotation in the specification file 
 # The target annotation is used to ma 
@@ -119,8 +100,12 @@ with tokenize.open(str(sys.argv[1])) as f:
         #print(token)
         if token.type==60 and 'check' in token.string:
             tmpvars=token.string.split('check')[1].split(' ')
-            spec_vars_list.extend(tmpvars)
-            del spec_vars_list[0]
+            del tmpvars[0]
+            spec_vars_list|=set(tmpvars)
+            check_flag=True
+
+if(not check_flag):
+    print("Warning: No check comment in specification.\n")
 
 # get function name
 def packFunc(node):
@@ -159,7 +144,11 @@ def SliceStr(slice, treedic):
 
     tmpstr='['
 
-    if isinstance(slice, ast.Index):
+    tmpval = handleConstName(slice, treedic)
+    if not tmpval==False:
+        tmpstr+=tmpval+']'
+        return tmpstr
+    elif isinstance(slice, ast.Index):
         dims=slice.value.elts
     elif isinstance(slice, ast.Tuple):
         dims=slice.elts
@@ -206,59 +195,71 @@ def SliceStr(slice, treedic):
     tmpstr+=']'
     return tmpstr
 
+#handle Python language features
+def handleLangFeat(feat, treedic):
+    global funcName
+    node=Node('null',[])
+    tmpval=handleConstName(feat, treedic)
+    if not tmpval==False:
+        if not hasattr(tmpval, '__dict__'):
+            node.func=tmpval
+        else:
+            node=tmpval
+    elif isinstance(feat, ast.List):
+        node.func='List('
+        addArgs(node, treedic, feat.elts)
+    elif isinstance(feat, ast.Tuple):
+        node.func='Tuple('
+        addArgs(node, treedic, feat.elts)
+    elif isinstance(feat, ast.Set):
+        node.func='Set('
+        addArgs(node, treedic, feat.elts)
+    elif isinstance(feat, ast.Dict):
+        node.func='Dict('
+        #print(ast.dump(feat))
+        #print(ast.dump(feat.keys[0]))
+        for idx, key in enumerate(feat.keys):
+            tmpval=Node(key.value, [])
+            tmparg=[feat.values[idx]]
+            addArgs(tmpval, treedic, tmparg)
+            node.args.append(tmpval)
+    elif isinstance(feat, ast.Call):
+        funcName=""
+        packFunc(feat.func)
+        node.func=funcName
+        addArgs(node, treedic, feat.args)
+    elif isinstance(feat, ast.Subscript):
+        node.func='Project('
+        node.args.append(feat.value.id)
+        node.args.append(SliceStr(feat.slice, treedic))
+    elif isinstance(feat, ast.BinOp):
+        if isinstance(feat.op, ast.Add):
+            node.func='Add('
+        elif isinstance(feat.op, ast.Sub):
+            node.func='Sub('
+        elif isinstance(feat.op, ast.Mult):
+            node.func='Mult('
+        elif isinstance(feat.op, ast.MatMult):
+            node.func='MatMult('
+        else:
+            print("Unsupported operation: ", feat.op)
+        #print(args)
+        args=[feat.left, feat.right]
+        addArgs(node, treedic, args)
+    else:
+        print("Unrecognized node: ", ast.dump(feat))
+    
+    return node
+
 # populate args
 def addArgs(somenode, treedic, args):
-    global funcName
     for i in args:
         #if not isinstance(i, str):
         #    print(ast.dump(i))
-        tmpval = handleConstName(i, treedic)
-        if not tmpval==False:
-            pass
-        elif isinstance(i, ast.List):
-            tmpval=Node('List', [])
-            addArgs(tmpval, treedic, i.elts)
-        elif isinstance(i, ast.Tuple):
-            tmpval=Node('Tuple', [])
-            addArgs(tmpval, treedic, i.elts)
-        elif isinstance(i, ast.Set):
-            tmpval=Node('Set', [])
-            addArgs(tmpval, treedic, i.elts)
-        elif isinstance(i, ast.Dict):
-            tmpval=Node('Dict', [])
-            #print(i.keys)
-            for idx, key in enumerate(i.keys):
-                tmpval1=Node(key.value, [])
-                tmparg=[i.values[idx]]
-                addArgs(tmpval1, treedic, tmparg)
-                tmpval.args.append(tmpval1)
-        elif isinstance(i, ast.Call):
-            funcName=""
-            packFunc(i.func)
-            tmpval=Node(funcName, [])
-            addArgs(tmpval, treedic, i.args)
-        elif isinstance(i, ast.Subscript):
-            tmpval=Node('Project', [])
-            tmpval.args.append(i.value.id)
-            tmpval.args.append(SliceStr(i.slice, treedic))
-        elif isinstance(i, ast.BinOp):
-            if isinstance(i.op, ast.Add):
-                funcName='Add'
-            elif isinstance(i.op, ast.Sub):
-                funcName='Sub'
-            elif isinstance(i.op, ast.Mult):
-                funcName='Mult'
-            elif isinstance(i.op, ast.MatMult):
-                funcName='MatMult'
-            else:
-                print("Unsupported operation: ", i.op)
-            tmpval=Node(funcName, [])
-            args=[i.left, i.right]
-            addArgs(tmpval, treedic, args)
-        else:
-            print("Unrecognized node: ", i)
         
-        somenode.args.append(tmpval)
+        child=handleLangFeat(i,treedic)
+        
+        somenode.args.append(child)
 
 # visit assignments
 class GetAssignments(ast.NodeVisitor):
@@ -270,55 +271,14 @@ class GetAssignments(ast.NodeVisitor):
             treedic=src_treedic
         else:
             treedic=spec_treedic
+        
         #print(ast.dump(node.value))
-        root=Node('null',[])
-        tmpval=handleConstName(node.value, treedic)
-        if not tmpval==False:
-            root.func=tmpval
-        elif isinstance(node.value, ast.List):
-            root.func='List'
-            addArgs(root, treedic, node.value.elts)
-        elif isinstance(node.value, ast.Tuple):
-            root.func='Tuple'
-            addArgs(root, treedic, node.value.elts)
-        elif isinstance(node.value, ast.Set):
-            root.func='Set'
-            addArgs(root, treedic, node.value.elts)
-        elif isinstance(node.value, ast.Dict):
-            root.func='Dict'
-            #print(ast.dump(node.value))
-            #print(ast.dump(node.value.keys[0]))
-            for idx, key in enumerate(node.value.keys):
-                tmpval=Node(key.value, [])
-                tmparg=[node.value.values[idx]]
-                addArgs(tmpval, treedic, tmparg)
-                root.args.append(tmpval)
-        elif isinstance(node.value, ast.Call):
-            funcName=""
-            packFunc(node.value.func)
-            root.func=funcName
-            addArgs(root, treedic, node.value.args)
-        elif isinstance(node.value, ast.Subscript):
-            root.func='Project'
-            root.args.append(node.value.value.id)
-            root.args.append(SliceStr(node.value.slice, treedic))
-        elif isinstance(node.value, ast.BinOp):
-            if isinstance(node.value.op, ast.Add):
-                root.func='Add'
-            elif isinstance(node.value.op, ast.Sub):
-                root.func='Sub'
-            elif isinstance(node.value.op, ast.Mult):
-                root.func='Mult'
-            elif isinstance(node.value.op, ast.MatMult):
-                root.func='MatMult'
-            else:
-                print("Unsupported operation: ", node.value.op)
-            #print(args)
-            args=[node.value.left, node.value.right]
-            addArgs(root, treedic, args)
+        if isinstance(node.targets[0], ast.Tuple):
+            root=Node('List(',[])
+            addArgs(root, treedic, node.targets[0].elts)
         else:
-            print("Unrecognized root node: ", node.value)
-    
+            root=handleLangFeat(node.value,treedic)
+        
         treedic[node.targets[0].id]=root
 
 #execute
