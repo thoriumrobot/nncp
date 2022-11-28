@@ -17,5 +17,9 @@ for (i, casePath) in enumerate(casePaths):
     if out==output:
         print(Fore.GREEN + "Pass\n",Style.RESET_ALL, output,"\n")
     else:
-        diff=d.compare(output, out)
-        print(Fore.RED+"Fail\n", Style.RESET_ALL,"".join(diff),"\n")
+        print(Fore.RED+"Fail\n", Style.RESET_ALL)
+        outl=out.split('\n')
+        outputl=output.split('\n')
+        for (j, line) in enumerate(outputl):
+            diff=d.compare(line, outl[j])
+            print("".join(diff),"\n")
