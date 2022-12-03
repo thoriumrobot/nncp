@@ -11,10 +11,7 @@ with open(str(sys.argv[2]), 'r', encoding='utf8') as f:
 def CSList(args):
     s=''
     for i in args:
-        if isinstance(i, Node):
-            s+=i.ExpString()
-        else:
-            s+=str(i)
+        s+=val2str(i)
         if not i is args[-1]:
             s+=','
     return s
@@ -60,11 +57,7 @@ class Node:
         elif self.func=='Dict(':
             s='{'
             for i in self.args:
-                s+=i.func+':'
-                if isinstance(i.args[0], Node):
-                    s+=i.args[0].ExpString()
-                else:
-                    s+=str(i.args[0])
+                s+=i.func+':'+val2str(i.args[0])
                 if not i is self.args[-1]:
                     s+=','
             s+='}'
@@ -83,15 +76,7 @@ class Node:
             op='/'
         
         if self.func=='Project(' or self.func=='Add(' or self.func=='Sub(' or self.func=='Mult(' or self.func=='MatMult(' or self.func=='Div(':
-            if isinstance(self.args[0], Node):
-                s=self.args[0].ExpString()
-            else:
-                s=str(self.args[0])
-            s+=op
-            if isinstance(self.args[1], Node):
-                s+=self.args[1].ExpString()
-            else:
-                s+=str(self.args[1])
+            s=val2str(self.args[0])+op+val2str(self.args[1])
             return s
 
         s=self.func+'('+CSList(self.args)+')'
@@ -128,7 +113,11 @@ with tokenize.open(str(sys.argv[1])) as f:
 if(not check_flag):
     print("Warning: No check comment in specification.\n")
 
-# get function name
+def val2str(elem):
+    if isinstance(elem, Node):
+        return elem.ExpString()
+    return str(elem)
+
 # get function name
 def getFuncName(node, funcName, funcNode, treedic):
     if isinstance(node, ast.Name):
@@ -200,13 +189,17 @@ def SliceStr(slice, treedic):
         tmpstr+=tmpval+']'
         return tmpstr
     elif isinstance(slice, ast.Index):
-        dims=slice.value.elts
+        #print(ast.dump(slice))
+        if hasattr(slice.value, 'elts'):
+            dims=slice.value.elts
+        else:
+            dims=[slice.value]
     elif isinstance(slice, ast.Tuple):
         dims=slice.elts
     elif isinstance(slice, ast.ExtSlice):
         dims=slice.dims
     elif isinstance(slice, ast.Call):
-        return handleLangFeat(slice,treedic).ExpString()
+        return val2str(handleLangFeat(slice,treedic))
     elif isinstance(slice, ast.Slice):
         dims=[slice]
     else:
@@ -232,15 +225,9 @@ def SliceStr(slice, treedic):
             tmpval=handleConstName(i.step, treedic)
             if tmpval is not None:
                 tmpstr+=':'+tmpval
-        elif isinstance(slice, ast.Index):
+        elif isinstance(slice, ast.Index) or isinstance(i, ast.Name):
             #print(ast.dump(i))
-            tmpstr+=handleConstName(i, treedic)
-        elif isinstance(i, ast.Name):
-            tmpval=handleConstName(i, treedic)
-            if isinstance(tmpval, Node):
-                tmpstr+=tmpval.ExpString()
-            else:
-                tmpstr+=tmpval
+            tmpstr+=val2str(handleConstName(i, treedic))
         else:
             print("Element of slice is an unrecognized object: ", i)
         
@@ -338,32 +325,35 @@ class GetAssignments(ast.NodeVisitor):
         #print(ast.dump(node.targets[0]))
         #print(ast.dump(node.value))
 
-        tmpTup=[]
+        if isinstance(node.targets[0], ast.Tuple):
+            lvalue=[]
 
         if flag=="src":
-            if isinstance(node.targets[0], ast.Tuple):
-                for elem in node.targets[0]:
-                    if elem.id in spec_treedic:
-                        tmpTup.append(elem.id)
-                tmpTup=tuple(tmpTup)
-            elif node.targets[0].id not in spec_treedic: #one way nesting
-                return
             treedic=src_treedic
+            if isinstance(node.targets[0], ast.Tuple):
+                #print(ast.dump(node.targets[0]))
+                for elem in node.targets[0].elts:
+                    tmpval=val2str(handleLangFeat(elem, treedic))
+                    if tmpval in spec_treedic:
+                        lvalue.append(tmpval)
+                if len(lvalue)==0:
+                    return
+            else:
+                lvalue=val2str(handleLangFeat(node.targets[0], treedic))
+                if lvalue not in spec_treedic: #one way nesting
+                    return
         else:
             treedic=spec_treedic
+            lvalue=val2str(handleLangFeat(node.targets[0], treedic))
         
         if isinstance(node.targets[0], ast.Tuple):
-            root=handleLangFeat(node.value,treedic).ExpString()
-            for (i,elem) in enumerate(tmpTup):
-                
+            root=val2str(handleLangFeat(node.value,treedic))
+
+            for (i,elem) in enumerate(lvalue):
+                treedic[elem]=root+'['+str(i)+']'
         else:
             root=handleLangFeat(node.value,treedic)
-        
-        lvalue=handleLangFeat(node.targets[0], treedic)
-        if isinstance(lvalue, Node):
-            lvalue=lvalue.ExpString()
-
-        treedic[lvalue]=root
+            treedic[lvalue]=root
 
 #execute
 # parse the specification file and build the spec_treeDict 
@@ -373,10 +363,7 @@ GetAssignments().visit(spec_tree)
 
 #'''
 for key in spec_treedic:
-    rvalue=spec_treedic[key]
-    if isinstance(rvalue,Node):
-        rvalue=rvalue.ExpString()
-    print(key,': ',rvalue)
+    print(key,': ',val2str(spec_treedic[key]))
 #'''
 
 for i in spec_vars_list:
@@ -390,7 +377,7 @@ flag='src'
 GetAssignments().visit(src_tree)
 
 #print(src_treedic)
-#print(src_treedic['c'].ExpString())
+#print(val2str(src_treedic['c']))
 #print(src_treedic['c'].args[0].func)
 #print(spec_vars_list)
 
@@ -399,10 +386,10 @@ for key in spec_vars_list:
     if key not in src_treedic:
         print("Warning: Variable ", key, " is not defined in the code.")
         continue
-    if not spec_treedic[key].ExpString() == src_treedic[key].ExpString():
-        print("Warning: Variable ", key, "does not match specification. Details: Specification: ",spec_treedic[key].ExpString(),". Code: ",src_treedic[key].ExpString(),".")
+    if not val2str(spec_treedic[key]) == val2str(src_treedic[key]):
+        print("Warning: Variable ", key, "does not match specification. Details: Specification: ",val2str(spec_treedic[key]),". Code: ",val2str(src_treedic[key]),".")
         continue
-    print("Match: Variable ",key," matches specification. Details: ",spec_treedic[key].ExpString(),".")
+    print("Match: Variable ",key," matches specification. Details: ",val2str(spec_treedic[key]),".")
 
 
 
