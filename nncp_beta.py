@@ -173,6 +173,9 @@ def handleConstName(elem, treedic):
     if isinstance(elem, ast.Constant):
         return elem.value
     elif isinstance(elem, ast.Name):
+        #if isinstance(elem.id, Node):
+        #    print(elem.id.traverse())
+        #print(treedic)
         if elem.id in treedic:
             return treedic[elem.id]
         else:
@@ -270,7 +273,7 @@ def handleLangFeat(feat, treedic):
     elif isinstance(feat, ast.Call):
         funcName=""
         funcNode=Node("FList(",[])
-        node=packFunc(feat,treedic,funcNode)
+        node=packFunc(feat,funcNode,treedic)
     elif isinstance(feat, ast.Subscript):
         node.func='Project('
         node.args.append(feat.value.id)
