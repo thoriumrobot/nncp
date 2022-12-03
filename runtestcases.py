@@ -2,7 +2,7 @@ import sys, os, subprocess, difflib
 from colorama import Fore, Back, Style
 
 for dirpath, dirname, filename in os.walk(str(sys.argv[1])):
-    casePaths = [dirpath + '/' + f for f in filename if f.endswith(".py")]
+    casePaths = [dirpath + '/' + f for f in filename if f.endswith(".out")]
 
 #print(casePaths)
 
