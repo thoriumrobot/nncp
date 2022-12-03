@@ -1,4 +1,5 @@
 import ast, tokenize, csv, sys
+from colorama import Fore, Back, Style
 
 # read specifiction 
 with open(str(sys.argv[1]), 'r', encoding='utf8') as f: 
@@ -361,14 +362,14 @@ spec_tree=ast.parse(spec,mode='exec')
 flag='spec'
 GetAssignments().visit(spec_tree)
 
-#'''
+'''
 for key in spec_treedic:
     print(key,': ',val2str(spec_treedic[key]))
-#'''
+'''
 
 for i in spec_vars_list:
     if i not in spec_treedic:
-        print("Error: Variable ",i," specified for checking is not defined in the specification.")
+        print(Fore.RED+"Error: Variable ",i," specified for checking is not defined in the specification.", Style.RESET_ALL)
         sys.exit(0)
 
 # parse and build the src tree and its dicationary 
@@ -384,12 +385,12 @@ GetAssignments().visit(src_tree)
 #check for incompatibilities
 for key in spec_vars_list:
     if key not in src_treedic:
-        print("Warning: Variable ", key, " is not defined in the code.")
+        print(Fore.YELLOW+"Warning: Variable ", key, " is not defined in the code.", Style.RESET_ALL)
         continue
     if not val2str(spec_treedic[key]) == val2str(src_treedic[key]):
-        print("Warning: Variable ", key, "does not match specification. Details: Specification: ",val2str(spec_treedic[key]),". Code: ",val2str(src_treedic[key]),".")
+        print(Fore.YELLOW+"Warning: Variable ", key, "does not match specification. Details: Specification: ",val2str(spec_treedic[key]),". Code: ",val2str(src_treedic[key]),".", Style.RESET_ALL)
         continue
-    print("Match: Variable ",key," matches specification. Details: ",val2str(spec_treedic[key]),".")
+    print(Fore.GREEN + "Match: Variable ",key," matches specification. Details: ",val2str(spec_treedic[key]),".", Style.RESET_ALL)
 
 
 
