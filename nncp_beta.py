@@ -1,5 +1,6 @@
 import ast, tokenize, csv, sys
-from colorama import Fore, Back, Style
+from colorama import Fore, Back, Style, init
+init()
 
 # read specifiction 
 with open(str(sys.argv[1]), 'r', encoding='utf8') as f: 
