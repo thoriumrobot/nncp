@@ -173,6 +173,8 @@ def packFunc(node, funcNode, treedic):
 def handleConstName(elem, treedic):
     #print(ast.dump(elem))
     if isinstance(elem, ast.Constant):
+        if isinstance(elem.value,str):
+            return '\''+elem.value+'\''
         return elem.value
     elif isinstance(elem, ast.Name):
         #if isinstance(elem.id, Node):
@@ -333,21 +335,30 @@ def addArgs(somenode, treedic, args):
 class GetAssignments(ast.NodeVisitor):
     def visit_Assign(self, node):
         global flag, root, spec_treedic, src_treedic, funcName
+        #print(ast.dump(node.targets[0]))
+        #print(ast.dump(node.value))
+
+        tmpTup=[]
+
         if flag=="src":
-            if node.targets[0].id not in spec_treedic: #one way nesting
+            if isinstance(node.targets[0], ast.Tuple):
+                for elem in node.targets[0]:
+                    if elem.id in spec_treedic:
+                        tmpTup.append(elem.id)
+                tmpTup=tuple(tmpTup)
+            elif node.targets[0].id not in spec_treedic: #one way nesting
                 return
             treedic=src_treedic
         else:
             treedic=spec_treedic
         
-        #print(ast.dump(node.value))
         if isinstance(node.targets[0], ast.Tuple):
-            root=Node('List(',[])
-            addArgs(root, treedic, node.targets[0].elts)
+            root=handleLangFeat(node.value,treedic).ExpString()
+            for (i,elem) in enumerate(tmpTup):
+                
         else:
             root=handleLangFeat(node.value,treedic)
         
-        #print(ast.dump(node.targets[0]))
         lvalue=handleLangFeat(node.targets[0], treedic)
         if isinstance(lvalue, Node):
             lvalue=lvalue.ExpString()
@@ -359,6 +370,14 @@ class GetAssignments(ast.NodeVisitor):
 spec_tree=ast.parse(spec,mode='exec')
 flag='spec'
 GetAssignments().visit(spec_tree)
+
+#'''
+for key in spec_treedic:
+    rvalue=spec_treedic[key]
+    if isinstance(rvalue,Node):
+        rvalue=rvalue.ExpString()
+    print(key,': ',rvalue)
+#'''
 
 for i in spec_vars_list:
     if i not in spec_treedic:
