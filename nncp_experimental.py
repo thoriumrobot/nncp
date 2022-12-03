@@ -25,9 +25,28 @@ class Node:
         self.func=func
         self.args=args
     
+    def traverse(self):
+        s='Node(func=\"'+self.func+'\", args=['
+        for i in self.args:
+            if isinstance(i, Node):
+                s+=i.traverse()
+                if not i == self.args[-1]:
+                    s+=', '
+            else:
+                s+=str(i)
+        s+='])'
+        return s
+    
     def ExpString(self):
         if not isinstance(self.func, str):
             s=str(self.func)
+            return s
+        elif self.func=='FList(':
+            s=""
+            for elem in self.args:
+                s+=elem.ExpString()
+                if not elem is self.args[-1]:
+                    s+='.'
             return s
         elif self.func=='List(':
             s='['+CSList(self.args)+']'
@@ -108,21 +127,46 @@ if(not check_flag):
     print("Warning: No check comment in specification.\n")
 
 # get function name
-def packFunc(node):
-    global funcName
+# get function name
+def getFuncName(node, funcName, funcNode, treedic):
     if isinstance(node, ast.Name):
         if funcName == "":
             funcName = node.id
         else:
             funcName = node.id+"."+funcName
-        return node.id
-    else: # is an ast.Attribute
+        return funcName
+    elif isinstance(node, ast.Attribute): # is an ast.Attribute
         if hasattr(node, 'attr'):
             if funcName == "":
                 funcName = node.attr
             else: 
                 funcName = node.attr+"."+funcName
-        return packFunc(node.value)
+        return getFuncName(node.value, funcName, funcNode, treedic)
+    elif isinstance(node, ast.Call):
+        #funcNode=Node("Dot(",[node])
+        packFunc(node, funcNode, treedic)
+        #funcNode.args.append(x)
+        #handleLangFeat(node, treedic=funcTree)
+    else:
+        print("getFuncName: unknown Function name {}".format(node))
+        print("instance type: {}".format(type(node)))
+    return funcName
+
+def packFunc(node, funcNode, treedic):
+    funcName ="" 
+    global funcTree
+    if isinstance(node, ast.Call):
+        funcName = getFuncName(node.func, "", funcNode, treedic)
+        #print(funcName)
+        tmpNode = Node(funcName, [])
+        #print(tmpNode.traverse())
+        addArgs(tmpNode,treedic,node.args)
+        #print(tmpNode.traverse())
+        funcNode.args.append(tmpNode)
+        return funcNode
+    else:
+        print("unknown instance {}".format(node))
+        print("instance: {}".format(ast.dump(node)))
 
 def handleConstName(elem, treedic):
     #print(ast.dump(elem))
@@ -202,7 +246,7 @@ def handleLangFeat(feat, treedic):
     tmpval=handleConstName(feat, treedic)
     if not tmpval==False:
         if not hasattr(tmpval, '__dict__'):
-            node.func=tmpval
+            return tmpval
         else:
             node=tmpval
     elif isinstance(feat, ast.List):
@@ -225,9 +269,8 @@ def handleLangFeat(feat, treedic):
             node.args.append(tmpval)
     elif isinstance(feat, ast.Call):
         funcName=""
-        packFunc(feat.func)
-        node.func=funcName
-        addArgs(node, treedic, feat.args)
+        funcNode=Node("FList(",[])
+        node=packFunc(feat,treedic,funcNode)
     elif isinstance(feat, ast.Subscript):
         node.func='Project('
         node.args.append(feat.value.id)
