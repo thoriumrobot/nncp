@@ -202,7 +202,7 @@ def handleLangFeat(feat, treedic):
     tmpval=handleConstName(feat, treedic)
     if not tmpval==False:
         if not hasattr(tmpval, '__dict__'):
-            node.func=tmpval
+            return tmpval
         else:
             node=tmpval
     elif isinstance(feat, ast.List):
