@@ -16,7 +16,7 @@ torch.save(ckpt, last)
 torch.save(ckpt, best)
 torch.save(ckpt, w / f'epoch{epoch}.pt')
 x = np.loadtxt(evolve_csv, ndmin=2, delimiter=',', skiprows=1)
-x = x[np.argsort(-fitness(x))][:n]
+#x = x[np.argsort(-fitness(x))][:n]
 npr = np.random
 g = np.array([meta[k][0] for k in hyp.keys()])
 v = np.ones(ng)

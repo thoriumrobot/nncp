@@ -325,7 +325,12 @@ class GetAssignments(ast.NodeVisitor):
         else:
             root=handleLangFeat(node.value,treedic)
         
-        treedic[node.targets[0].id]=root
+        #print(ast.dump(node.targets[0]))
+        lvalue=handleLangFeat(node.targets[0], treedic)
+        if isinstance(lvalue, Node):
+            lvalue=lvalue.ExpString()
+
+        treedic[lvalue]=root
 
 #execute
 # parse the specification file and build the spec_treeDict 
