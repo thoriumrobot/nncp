@@ -79,8 +79,10 @@ class Node:
             op='*'
         elif self.func=='MatMult(':
             op=' MatMult '
+        elif self.func=='Div(':
+            op='/'
         
-        if self.func=='Project(' or self.func=='Add(' or self.func=='Sub(' or self.func=='Mult(' or self.func=='MatMult(':
+        if self.func=='Project(' or self.func=='Add(' or self.func=='Sub(' or self.func=='Mult(' or self.func=='MatMult(' or self.func=='Div(':
             if isinstance(self.args[0], Node):
                 s=self.args[0].ExpString()
             else:
@@ -184,7 +186,7 @@ def handleConstName(elem, treedic):
         return elem
     else:
         #print("Cannot handle object: ", elem)
-        return False
+        return None
 
 def SliceStr(slice, treedic):
     #print(ast.dump(slice))
@@ -192,7 +194,7 @@ def SliceStr(slice, treedic):
     tmpstr='['
 
     tmpval = handleConstName(slice, treedic)
-    if not tmpval==False:
+    if tmpval is not None:
         tmpstr+=tmpval+']'
         return tmpstr
     elif isinstance(slice, ast.Index):
@@ -201,8 +203,12 @@ def SliceStr(slice, treedic):
         dims=slice.elts
     elif isinstance(slice, ast.ExtSlice):
         dims=slice.dims
+    elif isinstance(slice, ast.Call):
+        return handleLangFeat(slice,treedic).ExpString()
+    elif isinstance(slice, ast.Slice):
+        dims=[slice]
     else:
-        print("Slice is an unrecognized object: ", slice)
+        print("Slice is an unrecognized object: ", ast.dump(slice))
     
     #print(dims)
 
@@ -215,14 +221,14 @@ def SliceStr(slice, treedic):
                 continue
             
             tmpval=handleConstName(i.lower, treedic)
-            if not tmpval==False:
+            if tmpval is not None:
                 tmpstr+=tmpval
             tmpstr+=':'
             tmpval=handleConstName(i.upper, treedic)
-            if not tmpval==False:
+            if tmpval is not None:
                 tmpstr+=tmpval
             tmpval=handleConstName(i.step, treedic)
-            if not tmpval==False:
+            if tmpval is not None:
                 tmpstr+=':'+tmpval
         elif isinstance(slice, ast.Index):
             #print(ast.dump(i))
@@ -247,11 +253,14 @@ def handleLangFeat(feat, treedic):
     global funcName
     node=Node('null',[])
     tmpval=handleConstName(feat, treedic)
-    if not tmpval==False:
+    #print(tmpval)
+    if tmpval is not None:
         if not hasattr(tmpval, '__dict__'):
             return tmpval
         else:
             node=tmpval
+    elif isinstance(feat, ast.Attribute):
+        return getFuncName(feat, "", Node("null",[]), treedic)
     elif isinstance(feat, ast.List):
         node.func='List('
         addArgs(node, treedic, feat.elts)
@@ -276,8 +285,19 @@ def handleLangFeat(feat, treedic):
         node=packFunc(feat,funcNode,treedic)
     elif isinstance(feat, ast.Subscript):
         node.func='Project('
-        node.args.append(feat.value.id)
+        if hasattr(feat.value, 'id'):
+            node.args.append(feat.value.id)
+        elif isinstance(feat.value, ast.Subscript):
+            node.args.append(handleLangFeat(feat.value,treedic))
+        else:
+            print('Unrecognized subscript:', ast.dump(feat.value))
         node.args.append(SliceStr(feat.slice, treedic))
+    elif isinstance(feat, ast.UnaryOp): #lazy method
+        if isinstance(feat.op, ast.UAdd):
+            node=handleLangFeat(feat.operand,treedic)
+        if isinstance(feat.op, ast.USub):
+            node.func='Mult('
+            node.args=[-1,handleLangFeat(feat.operand,treedic)]
     elif isinstance(feat, ast.BinOp):
         if isinstance(feat.op, ast.Add):
             node.func='Add('
@@ -287,6 +307,8 @@ def handleLangFeat(feat, treedic):
             node.func='Mult('
         elif isinstance(feat.op, ast.MatMult):
             node.func='MatMult('
+        elif isinstance(feat.op, ast.Div):
+            node.func='Div('
         else:
             print("Unsupported operation: ", feat.op)
         #print(args)
