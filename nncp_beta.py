@@ -76,8 +76,12 @@ class Node:
             op=' MatMult '
         elif self.func=='Div(':
             op='/'
+        elif self.func=='Or(':
+            op=' or '
+        elif self.func=='And(':
+            op=' and '
         
-        if self.func=='Project(' or self.func=='Add(' or self.func=='Sub(' or self.func=='Mult(' or self.func=='MatMult(' or self.func=='Div(':
+        if self.func=='Project(' or self.func=='Add(' or self.func=='Sub(' or self.func=='Mult(' or self.func=='MatMult(' or self.func=='Div(' or self.func=='Or(' or self.func=='And(':
             s=val2str(self.args[0])+op+val2str(self.args[1])
             return s
 
@@ -141,8 +145,11 @@ def getFuncName(node, funcName, funcNode, treedic):
         #funcNode.args.append(x)
         #handleLangFeat(node, treedic=funcTree)
     else:
-        print("getFuncName: unknown Function name {}".format(node))
-        print("instance type: {}".format(type(node)))
+        tmpval=val2str(handleLangFeat(node, treedic))
+        if funcName == "":
+            funcName = tmpval
+        else: 
+            funcName = tmpval+"."+funcName
     return funcName
 
 def packFunc(node, funcNode, treedic):
@@ -308,6 +315,16 @@ def handleLangFeat(feat, treedic):
             print("Unsupported operation: ", feat.op)
         #print(args)
         args=[feat.left, feat.right]
+        addArgs(node, treedic, args)
+    elif isinstance(feat, ast.BoolOp):
+        if isinstance(feat.op, ast.Or):
+            node.func='Or('
+        elif isinstance(feat.op, ast.And):
+            node.func='And('
+        else:
+            print("Unsupported operation: ", feat.op)
+        #print(args)
+        args=[feat.values[0], feat.values[1]]
         addArgs(node, treedic, args)
     else:
         print("Unrecognized node: ", ast.dump(feat))
