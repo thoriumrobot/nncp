@@ -188,7 +188,7 @@ def SliceStr(slice, treedic):
 
     tmpval = handleConstName(slice, treedic)
     if tmpval is not None:
-        tmpstr+=tmpval+']'
+        tmpstr+=val2str(tmpval)+']'
         return tmpstr
     elif isinstance(slice, ast.Index):
         #print(ast.dump(slice))
@@ -204,6 +204,8 @@ def SliceStr(slice, treedic):
         return val2str(handleLangFeat(slice,treedic))
     elif isinstance(slice, ast.Slice):
         dims=[slice]
+    elif isinstance(slice, ast.Subscript):
+        return '['+SliceStr(slice.slice, treedic)+']'
     else:
         print("Slice is an unrecognized object: ", ast.dump(slice))
     
@@ -219,14 +221,14 @@ def SliceStr(slice, treedic):
             
             tmpval=handleConstName(i.lower, treedic)
             if tmpval is not None:
-                tmpstr+=tmpval
+                tmpstr+=val2str(tmpval)
             tmpstr+=':'
             tmpval=handleConstName(i.upper, treedic)
             if tmpval is not None:
-                tmpstr+=tmpval
+                tmpstr+=val2str(tmpval)
             tmpval=handleConstName(i.step, treedic)
             if tmpval is not None:
-                tmpstr+=':'+tmpval
+                tmpstr+=':'+val2str(tmpval)
         elif isinstance(slice, ast.Index) or isinstance(i, ast.Name):
             #print(ast.dump(i))
             tmpstr+=val2str(handleConstName(i, treedic))
@@ -282,6 +284,7 @@ def handleLangFeat(feat, treedic):
             node.args.append(handleLangFeat(feat.value,treedic))
         else:
             print('Unrecognized subscript:', ast.dump(feat.value))
+        
         node.args.append(SliceStr(feat.slice, treedic))
     elif isinstance(feat, ast.UnaryOp): #lazy method
         if isinstance(feat.op, ast.UAdd):
