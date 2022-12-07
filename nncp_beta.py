@@ -154,6 +154,7 @@ def packFunc(node, funcNode, treedic):
         tmpNode = Node(funcName, [])
         #print(tmpNode.traverse())
         addArgs(tmpNode,treedic,node.args)
+        addKeys(tmpNode,treedic,node.keywords)
         #print(tmpNode.traverse())
         funcNode.args.append(tmpNode)
         return funcNode
@@ -320,6 +321,20 @@ def addArgs(somenode, treedic, args):
         #    print(ast.dump(i))
         
         child=handleLangFeat(i,treedic)
+        
+        somenode.args.append(child)
+
+# populate keywords
+def addKeys(somenode, treedic, keys):
+    for i in keys:
+        #if not isinstance(i, str):
+        #print(ast.dump(i))
+        
+        child=handleLangFeat(i.value,treedic)
+        if isinstance(child, Node):
+            child.func=i.arg+'='+child.func
+        else:
+            child=i.arg+'='+str(child)
         
         somenode.args.append(child)
 
