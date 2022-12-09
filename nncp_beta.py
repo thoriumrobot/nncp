@@ -76,12 +76,16 @@ class Node:
             op=' MatMult '
         elif self.func=='Div(':
             op='/'
+        elif self.func=='FloorDiv(':
+            op='//'
         elif self.func=='Or(':
             op=' or '
         elif self.func=='And(':
             op=' and '
+        elif self.func=='Lt(':
+            op=' < '
         
-        if self.func=='Project(' or self.func=='Add(' or self.func=='Sub(' or self.func=='Mult(' or self.func=='MatMult(' or self.func=='Div(' or self.func=='Or(' or self.func=='And(':
+        if self.func=='Project(' or self.func=='Add(' or self.func=='Sub(' or self.func=='Mult(' or self.func=='MatMult(' or self.func=='Div(' or self.func=='FloorDiv(' or self.func=='Or(' or self.func=='And(' or self.func=='Lt(':
             #print(self.func, ',', self.args)
             s=val2str(self.args[0])+op+val2str(self.args[1])
             return s
@@ -306,8 +310,10 @@ def handleLangFeat(feat, treedic):
             node.func='MatMult('
         elif isinstance(feat.op, ast.Div):
             node.func='Div('
+        elif isinstance(feat.op, ast.FloorDiv):
+            node.func='FloorDiv('
         else:
-            print("Unsupported operation: ", feat.op)
+            print("Unsupported operation: ", ast.dump(feat.op))
         #print(args)
         args=[feat.left, feat.right]
         addArgs(node, treedic, args)
@@ -317,9 +323,16 @@ def handleLangFeat(feat, treedic):
         elif isinstance(feat.op, ast.And):
             node.func='And('
         else:
-            print("Unsupported operation: ", feat.op)
+            print("Unsupported operation: ", ast.dump(feat.op))
         #print(args)
         args=[feat.values[0], feat.values[1]]
+        addArgs(node, treedic, args)
+    elif isinstance(feat, ast.Compare):
+        if isinstance(feat.ops[0], ast.Lt):
+            node.func='Lt('
+        else:
+            print("Unsupported operation: ", ast.dump(feat.ops))
+        args=[feat.left, feat.comparators[0]] # assume comparators list has one variable
         addArgs(node, treedic, args)
     else:
         print("Unrecognized node: ", ast.dump(feat))
