@@ -1,5 +1,5 @@
-import ast, tokenize, csv, sys
-from colorama import Fore, Back, Style, init
+import ast, tokenize, sys
+from colorama import Fore, Style, init
 init()
 
 # read specifiction 
@@ -85,9 +85,14 @@ class Node:
         elif self.func=='Lt(':
             op=' < '
         
-        if self.func=='Project(' or self.func=='Add(' or self.func=='Sub(' or self.func=='Mult(' or self.func=='MatMult(' or self.func=='Div(' or self.func=='FloorDiv(' or self.func=='Or(' or self.func=='And(' or self.func=='Lt(':
+        if self.func=='Project(':
             #print(self.func, ',', self.args)
             s=val2str(self.args[0])+op+val2str(self.args[1])
+            return s
+
+        if self.func=='Add(' or self.func=='Sub(' or self.func=='Mult(' or self.func=='MatMult(' or self.func=='Div(' or self.func=='FloorDiv(' or self.func=='Or(' or self.func=='And(' or self.func=='Lt(':
+            #print(self.func, ',', self.args)
+            s='('+val2str(self.args[0])+op+val2str(self.args[1])+')'
             return s
 
         s=self.func+'('+CSList(self.args)+')'
@@ -123,7 +128,7 @@ with tokenize.open(str(sys.argv[1])) as f:
             check_flag=True
 
 if(not check_flag):
-    print("Warning: No check comment in specification.\n")
+    print(Fore.RED+"Error:", Style.RESET_ALL," No check comment in specification.\n")
 
 def val2str(elem):
     if isinstance(elem, Node):
@@ -241,8 +246,11 @@ def SliceStr(slice, treedic):
         elif isinstance(slice, ast.Index) or isinstance(i, ast.Name):
             #print(ast.dump(i))
             tmpstr+=val2str(handleConstName(i, treedic))
+        elif isinstance(i, ast.Index):
+            #print(ast.dump(i))
+            tmpstr+=val2str(handleConstName(i.value, treedic))
         else:
-            print("Element of slice is an unrecognized object: ", i)
+            print("Element of slice is an unrecognized object: ", ast.dump(i))
         
         if not i == dims[-1]:
             tmpstr+=','
@@ -417,7 +425,10 @@ for key in spec_treedic:
 
 for i in spec_vars_list:
     if i not in spec_treedic:
-        print(Fore.RED+"Error: Variable ",i," specified for checking is not defined in the specification.", Style.RESET_ALL)
+        print(Fore.RED+"Error:", Style.RESET_ALL," Variable ",i," specified for checking is not defined in the specification.")
+        print('The variables defined in the specification are:')
+        for key in spec_treedic:
+            print(key)
         sys.exit(0)
 
 # parse and build the src tree and its dicationary 
@@ -434,12 +445,12 @@ GetAssignments().visit(src_tree)
 #check for incompatibilities
 for key in spec_vars_list:
     if key not in src_treedic:
-        print(Fore.YELLOW+"Warning: Variable ", key, " is not defined in the code.", Style.RESET_ALL)
+        print(Fore.YELLOW+"Warning:", Style.RESET_ALL," Variable ", key, " is not defined in the code.")
         continue
     if not val2str(spec_treedic[key]) == val2str(src_treedic[key]):
-        print(Fore.YELLOW+"Warning: Variable ", key, "does not match specification. Details: Specification: ",val2str(spec_treedic[key]),". Code: ",val2str(src_treedic[key]),".", Style.RESET_ALL)
+        print(Fore.YELLOW+"Warning:", Style.RESET_ALL," Variable ", key, "does not match specification. Details: Specification: ",val2str(spec_treedic[key]),". Code: ",val2str(src_treedic[key]),".")
         continue
-    print(Fore.GREEN + "Match: Variable ",key," matches specification. Details: ",val2str(spec_treedic[key]),".", Style.RESET_ALL)
+    print(Fore.GREEN + "Match:", Style.RESET_ALL," Variable ",key," matches specification. Details: ",val2str(spec_treedic[key]),".")
 
 
 

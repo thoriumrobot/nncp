@@ -1,0 +1,1 @@
+Match:   Variable  x  matches specification. Details:  x[random.choices(range(n),weights=w)[0]] .

@@ -1,2 +1,2 @@
-Match: Variable  i  matches specification. Details:  dict()+{stat:True} .
-Match: Variable  w  matches specification. Details:  dict(yr()) .
+Match:   Variable  w  matches specification. Details:  dict('yr') .
+Match:   Variable  i  matches specification. Details:  (dict+{stat:True}) .
