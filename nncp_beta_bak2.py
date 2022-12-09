@@ -332,7 +332,7 @@ def handleLangFeat(feat, treedic):
             node.func='Lt('
         else:
             print("Unsupported operation: ", ast.dump(feat.ops))
-        args=[feat.left, feat.comparators[0]]
+        args=[feat.left, feat.comparators[0]] # assume comparators list has one variable
         addArgs(node, treedic, args)
     else:
         print("Unrecognized node: ", ast.dump(feat))
