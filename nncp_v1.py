@@ -1,13 +1,38 @@
-import ast, tokenize, sys
-from colorama import Fore, Style, init
-init()
+import ast, tokenize, sys, argparse
+
+ap = argparse.ArgumentParser()
+ap.add_argument("-s", "--spec", required=True, type=str,
+    help="spec file")
+ap.add_argument("-p", "--prog", required=True, type=str,
+    help="code file")
+ap.add_argument("-c", "--col", type=str, default='false',
+    help="color true/false (default: false)")
+args = vars(ap.parse_args())
+
+colorflag=False
+
+if args['col']=='true':
+    colorflag=True
+    from colorama import Fore, Style, init
+    init()
+
+def colorprint(text, color):
+    if colorflag:
+        if color=='red':
+            print(Fore.RED+text,Style.RESET_ALL, end='')
+        elif color=='green':
+            print(Fore.GREEN+text,Style.RESET_ALL, end='')
+        elif color=='yellow':
+            print(Fore.YELLOW+text,Style.RESET_ALL, end='')
+    else:
+        print(text, end='')
 
 # read specifiction 
-with open(str(sys.argv[1]), 'r', encoding='utf8') as f: 
+with open(args['spec'], 'r', encoding='utf8') as f: 
     spec = f.read()
 
 # read code from file 
-with open(str(sys.argv[2]), 'r', encoding='utf8') as f: 
+with open(args['prog'], 'r', encoding='utf8') as f: 
     src = f.read()
 
 def CSList(args):
@@ -117,7 +142,7 @@ check_flag=False
 
 # use the tokenize to annotation in the specification file 
 # The target annotation is used to ma 
-with tokenize.open(str(sys.argv[1])) as f:
+with tokenize.open(args['spec']) as f:
     token_src = tokenize.generate_tokens(f.readline)
     for token in token_src:
         #print(token)
@@ -128,7 +153,8 @@ with tokenize.open(str(sys.argv[1])) as f:
             check_flag=True
 
 if(not check_flag):
-    print(Fore.RED+"Error:", Style.RESET_ALL," No check comment in specification.\n")
+    colorprint("Error:", 'red')
+    print(" No check comment in specification.\n")
 
 def val2str(elem):
     if isinstance(elem, Node):
@@ -425,7 +451,8 @@ for key in spec_treedic:
 
 for i in spec_vars_list:
     if i not in spec_treedic:
-        print(Fore.RED+"Error:", Style.RESET_ALL," Variable ",i," specified for checking is not defined in the specification.")
+        colorprint("Error:", 'red')
+        print(" Variable ",i," specified for checking is not defined in the specification.")
         print('The variables defined in the specification are:')
         for key in spec_treedic:
             print(key)
@@ -445,12 +472,15 @@ GetAssignments().visit(src_tree)
 #check for incompatibilities
 for key in spec_vars_list:
     if key not in src_treedic:
-        print(Fore.YELLOW+"Warning:", Style.RESET_ALL," Variable ", key, " is not defined in the code.")
+        colorprint("Warning:", 'yellow')
+        print(" Variable ", key, " is not defined in the code.")
         continue
     if not val2str(spec_treedic[key]) == val2str(src_treedic[key]):
-        print(Fore.YELLOW+"Warning:", Style.RESET_ALL," Variable ", key, "does not match specification. Details: Specification: ",val2str(spec_treedic[key]),". Code: ",val2str(src_treedic[key]),".")
+        colorprint("Warning:", 'yellow')
+        print(" Variable ", key, "does not match specification. Details: Specification: ",val2str(spec_treedic[key]),". Code: ",val2str(src_treedic[key]),".")
         continue
-    print(Fore.GREEN + "Match:", Style.RESET_ALL," Variable ",key," matches specification. Details: ",val2str(spec_treedic[key]),".")
+    colorprint("Match:", 'green')
+    print(" Variable ",key," matches specification. Details: ",val2str(spec_treedic[key]),".")
 
 
 
