@@ -26,7 +26,7 @@ optional arguments:
 
 ### How to run the code (using a single testcase)
 To successfully run the analysis, the following files are required:
-1. `nncp_beta.py`: python file of the static analysis tool. `nncp_beta.py` was developed using python `3.8.13`.  
+1. `nncp_beta.py`: python file of the static analysis tool. `nncp_beta.py` was developed using python `3.8.13`. 
 2. `-s`/`--spec`: A specification file that contains which variables/assignment expression and expected order of operations on this variable. Refer to #How to Write a specificaton file section below for more information. 
 3. `-p`/`--prog`: An input python file to be analyzed. No annotation required
 4. (Optional) `-c`/`--col` `false`||`true`: enable colorful output. The default value is false. This requires `colorama` package to be installed. `colorama` can be installed using `pip install colorama`. We used the version `0.4.5`.
