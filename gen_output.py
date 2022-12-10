@@ -1,4 +1,4 @@
-import sys, os, subprocess, argparse
+import os, subprocess, argparse
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-d", "--dir", type=str, default='testcases/',
@@ -6,7 +6,7 @@ ap.add_argument("-d", "--dir", type=str, default='testcases/',
 args = vars(ap.parse_args())
 
 for dirpath, dirname, filename in os.walk(args["dir"]):
-    specPaths = [dirpath + '/' + f for f in filename if f.endswith(".spec")]
+    specPaths = [dirpath + f for f in filename if f.endswith(".spec")]
 
 #print(casePaths)
 
