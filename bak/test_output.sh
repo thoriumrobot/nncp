@@ -9,7 +9,7 @@ for fil in "$dir_py"*.py
 
     if test -f "$spec_file"; then 
         #echo " $spec_file exists"
-        output=$(python nncp_v1.py $spec_file $fil)
+        output=$(python nncp_beta.py $spec_file $fil)
         #echo "output of $fil: $output"
         
         out_file=${fil/py/out}

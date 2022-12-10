@@ -13,7 +13,7 @@ for dirpath, dirname, filename in os.walk(args["dir"]):
 for (i, specPath) in enumerate(specPaths):
     casePath=specPath[:-4]+'py'
     outPath=specPath[:-4]+'out'
-    output=subprocess.check_output(['python', 'nncp_v1.py', '-s', specPath, '-p', casePath]).decode().strip()
+    output=subprocess.check_output(['python', 'nncp_beta.py', '-s', specPath, '-p', casePath]).decode().strip()
     #print('Case ', i, " ", casePath, ":\n", output)
     with open(outPath, 'w') as f:
         f.write(output)

@@ -34,7 +34,7 @@ outPaths.sort()
 for (i, outPath) in enumerate(outPaths):
     specPath=outPath[:-3]+'spec'
     casePath=outPath[:-3]+'py'
-    output=subprocess.check_output(['python', 'nncp_v1.py', '-s', specPath, '-p', casePath]).decode().strip().split('\n')
+    output=subprocess.check_output(['python', 'nncp_beta.py', '-s', specPath, '-p', casePath]).decode().strip().split('\n')
     print('Case ', i+1, " ", casePath, ":")
     with open(outPath, 'r', encoding='utf8') as f:
         out = f.readlines()

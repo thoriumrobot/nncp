@@ -10,13 +10,13 @@ Instructions for installing and setting up your project, including any necessary
 
 ### Usage
 
-`$ python nncp_v1.py -s specfile.spec -p codefile.py`
+`$ python nncp_beta.py -s specfile.spec -p codefile.py`
 
 ### Basic example 
 
-`$ python nncp_v1.py -s testcases/example_1.spec -p testcases/example_1.py`
+`$ python nncp_beta.py -s testcases/example_1.spec -p testcases/example_1.py`
 
-usage: nncp_v1.py [-h] -s SPEC -p PROG [-c COL]
+usage: nncp_beta.py [-h] -s SPEC -p PROG [-c COL]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -26,7 +26,7 @@ optional arguments:
 
 ### How to run the code (using a single testcase)
 To successfully run the analysis, the following files are required:
-1. `nncp_v1.py`: python file of the static analysis tool. `nncp_v1.py` was developed using python `3.8.13`.  
+1. `nncp_beta.py`: python file of the static analysis tool. `nncp_beta.py` was developed using python `3.8.13`.  
 2. `-s`/`--spec`: A specification file that contains which variables/assignment expression and expected order of operations on this variable. Refer to #How to Write a specificaton file section below for more information. 
 3. `-p`/`--prog`: An input python file to be analyzed. No annotation required
 4. (Optional) `-c`/`--col` `false`||`true`: enable colorful output. The default value is false. This requires `colorama` package to be installed. `colorama` can be installed using `pip install colorama`. We used the version `0.4.5`.
@@ -60,5 +60,5 @@ Specification files consist of a comment and a piece of code. The comment `#chec
 2. Create an empty (`test.spec`) file. 
 3. Write in `test.spec`: (`#check e`)
 4. Write in `test.spec`: all occurrances of `e` in the correct order.
-5. Run `python nncp_v1.py test.spec test.py`.
+5. Run `python nncp_beta.py test.spec test.py`.
 
