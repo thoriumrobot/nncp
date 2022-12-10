@@ -65,6 +65,8 @@ class Node:
         if not isinstance(self.func, str):
             s=str(self.func)
             return s
+        elif self.func=='Key(':
+            return self.args[0]+'='+self.args[1].ExpString()
         elif self.func=='FList(':
             s=""
             for elem in self.args:
@@ -389,11 +391,11 @@ def addKeys(somenode, treedic, keys):
         #if not isinstance(i, str):
         #print(ast.dump(i))
         
-        child=handleLangFeat(i.value,treedic)
-        if isinstance(child, Node):
-            child.func=i.arg+'='+child.func
+        tmpnode=handleLangFeat(i.value,treedic)
+        if isinstance(tmpnode, Node):
+            child=Node('Key(',[i.arg, tmpnode])
         else:
-            child=i.arg+'='+str(child)
+            child=i.arg+'='+str(tmpnode)
         
         somenode.args.append(child)
 

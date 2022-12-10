@@ -1,3 +1,3 @@
-Match: Variable  g  matches specification. Details:  (f*6) .
 Match: Variable  b  matches specification. Details:  (99*a) .
+Match: Variable  g  matches specification. Details:  (f*6) .
 Match: Variable  c  matches specification. Details:  ((99*a)*a) .

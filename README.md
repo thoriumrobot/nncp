@@ -10,11 +10,11 @@ Instructions for installing and setting up your project, including any necessary
 
 ### Usage
 
-`\$ python nncp_v1.py -s specfile.spec -p codefile.py`
+`$ python nncp_v1.py -s specfile.spec -p codefile.py`
 
 ### Basic example 
 
-`\$ python nncp_v1.py -s testcases/example_1.spec -p testcases/example_1.py`
+`$ python nncp_v1.py -s testcases/example_1.spec -p testcases/example_1.py`
 
 usage: nncp_v1.py [-h] -s SPEC -p PROG [-c COL]
 
