@@ -1,4 +1,4 @@
-Match: Variable  e  matches specification. Details:  list((a,b,(b+a))) .
-Match: Variable  c  matches specification. Details:  (b+a) .
 Match: Variable  d  matches specification. Details:  c[:,b] .
+Match: Variable  c  matches specification. Details:  (b+a) .
+Match: Variable  e  matches specification. Details:  list((a,b,(b+a))) .
 Match: Variable  z  matches specification. Details:  ((b+a)-a) .

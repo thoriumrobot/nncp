@@ -1,11 +1,11 @@
+Match: Variable  v  matches specification. Details:  (((((g*(npr.random(ng) < mp))*npr.randn(ng))*npr.random())*s)+1).clip(0.3,3.0) .
+Match: Variable  labels  matches specification. Details:  np.concatenate(dataset.labels,0) .
 Match: Variable  npr  matches specification. Details:  np.random .
 Match: Variable  x['momentum']  matches specification. Details:  np.interp(ni,xi,[hyp['warmup_momentum'],hyp['momentum']]) .
-Match: Variable  v  matches specification. Details:  (((((g*(npr.random(ng) < mp))*npr.randn(ng))*npr.random())*s)+1).clip(0.3,3.0) .
-Match: Variable  model  matches specification. Details:  smart_DDP(torch.nn.SyncBatchNorm.convert_sync_batchnorm(torch.nn.DataParallel(Model(cfg,ch=3,nc=nc,anchors=hyp.get('anchors')).to(device))).to(device)) .
 Match: Variable  scheduler  matches specification. Details:  lr_scheduler.LambdaLR(optimizer,lr_lambda=lf) .
-Match: Variable  x  matches specification. Details:  ((x[random.choices(range(n),weights=w)[0]]*w.reshape(n,1)).sum(0)/w.sum()) .
-Match: Variable  labels  matches specification. Details:  np.concatenate(dataset.labels,0) .
-Match: Variable  mloss  matches specification. Details:  (((torch.zeros(3,device=device)*i)+loss_items)/(i+1)) .
 Warning: Variable  imgs does not match specification. Details: Specification:  nn.functional.interpolate((imgs.to(device,non_blocking=True).float()/255),size=ns,mode='bilinear',align_corners=False) . Code:  nn.functional.interpolate((imgs.to(device,non_blocking=True).float()/255),size=(2*ns),mode='bilinear',align_corners=False) .
 Match: Variable  accumulate  matches specification. Details:  max(1,np.interp(ni,xi,[1,(nbs/batch_size)]).round()) .
 Match: Variable  fi  matches specification. Details:  fitness(np.array(results).reshape(1,(-1*1))) .
+Match: Variable  mloss  matches specification. Details:  (((torch.zeros(3,device=device)*i)+loss_items)/(i+1)) .
+Match: Variable  model  matches specification. Details:  smart_DDP(torch.nn.SyncBatchNorm.convert_sync_batchnorm(torch.nn.DataParallel(Model(cfg,ch=3,nc=nc,anchors=hyp.get('anchors')).to(device))).to(device)) .
+Match: Variable  x  matches specification. Details:  ((x[random.choices(range(n),weights=w)[0]]*w.reshape(n,1)).sum(0)/w.sum()) .
