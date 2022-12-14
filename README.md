@@ -3,7 +3,7 @@
 This is a tool to verify a subsequence of operations in Python code. To pass, the code must satisfy a
 specification written by the user. The tool checks whether the code performs the specified operations in the same order. This tool is intended for use in verifying machine learning projects. As a case study, we evaluate this tool by using it to debug changes in the Yolov5 object detection model.
 
-[![Python application](https://github.com/thoriumrobot/nncp/actions/workflows/python-app.yml/badge.svg)](https://github.com/thoriumrobot/nncp/actions/workflows/python-app.yml)
+[![Python application](https://github.com/thoriumrobot/nncp/actions/workflows/python-app.yml/badge.svg?branch=beta)](https://github.com/thoriumrobot/nncp/actions/workflows/python-app.yml)
 
 ## Getting Started
 
@@ -36,7 +36,7 @@ To successfully run the analysis, the following files are required:
 ### Run Testcases
 To run all the test cases with color output, run:
 
-`\$ python runtestcases.py -c true`
+`$ python runtestcases.py -c true`
 
 First, run `python gen_output.py` to generate the output for each pair of .spec and .py files in testcases directory.
 Second, run `python runtestcases.py` to examine all files in testcases directory. 
