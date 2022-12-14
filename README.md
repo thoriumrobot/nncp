@@ -36,7 +36,7 @@ To successfully run the analysis, the following files are required:
 ### Run Testcases
 To run all the test cases with color output, run:
 
-`\$ python runtestcases.py -c true`
+`$ python runtestcases.py -c true`
 
 First, run `python gen_output.py` to generate the output for each pair of .spec and .py files in testcases directory.
 Second, run `python runtestcases.py` to examine all files in testcases directory. 
@@ -62,5 +62,5 @@ Specification files consist of a comment and a piece of code. The comment `#chec
 2. Create an empty (`test.spec`) file. 
 3. Write in `test.spec`: (`#check e`)
 4. Write in `test.spec`: all occurrances of `e` in the correct order.
-5. Run `python nncp_beta.py test.spec test.py`.
+5. Run `python nncp_beta.py -s test.spec -p test.py`.
 
